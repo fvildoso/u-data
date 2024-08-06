@@ -1,9 +1,16 @@
 import io.github.cdimascio.dotenv.dotenv
+import io.github.evanrupert.excelkt.workbook
 import org.openqa.selenium.By
 import org.openqa.selenium.WebDriver
 import org.openqa.selenium.firefox.FirefoxDriver
 import java.lang.Thread.sleep
 import kotlin.random.Random
+
+data class Member(
+    val course: String,
+    val name: String,
+)
+
 
 fun main() {
 
@@ -11,7 +18,9 @@ fun main() {
     val dotenv = dotenv {}
 
     //cargamos el driver que usaremos, hay que generalizarlos para distintos OS y browsers
-    System.setProperty("webdriver.gecko.driver", "drivers/win64/geckodriver.exe")
+    val firefoxPath = dotenv["U-FIREFOXPATH"]
+    System.setProperty("webdriver.firefox.bin", firefoxPath)
+    System.setProperty("webdriver.gecko.driver", dotenv["U-DRIVER"])
     val driver: WebDriver = FirefoxDriver()
 
     //vamos a ucursos
@@ -31,13 +40,16 @@ fun main() {
 
     //obtenemos los links de todos los cursos
     val todosLosCursos =
-        driver.findElements(By.cssSelector("#todos_cursos > tbody > tr > td > h1"))
+        driver.findElements(By.cssSelector("#todos_cursos > tbody > tr > td > div > h1"))
             .filter { !it.findElement(By.cssSelector("a")).getAttribute("href").contains("/uchile/") }
             .map { it.findElement(By.cssSelector("a")).getAttribute("href") }
+            .filter { !it.contains("COM") }
 
-    todosLosCursos.forEach { curso ->
+    val mutableList = mutableListOf<Member>()
 
-        println(curso)
+    todosLosCursos.forEachIndexed { index, curso ->
+
+        println("$index=$curso")
         driver.get(curso)
 
         //buscamos todos los 'a' y luego el que tiene los integrantes
@@ -49,13 +61,26 @@ fun main() {
         integrantes.click()
 
         //iteramos sobre todos los integrantes
-        driver.findElements(By.cssSelector("#integrantes > tbody > tr > td > h1")).forEach {
+        driver.findElements(By.cssSelector("#integrantes > tbody > tr > td > div > h1")).forEach {
+            val member = Member(curso, it.text)
+            mutableList.add(member)
             println(it.text)
         }
 
         sleep(Random.nextInt(1, 5).toLong() * 1000)
 
     }
+
+    workbook {
+        sheet("members") {
+            for (customer in mutableList)
+                row {
+                    cell(customer.course)
+                    cell(customer.name)
+                }
+        }
+
+    }.write("members.xlsx")
 
     sleep(30000)
 

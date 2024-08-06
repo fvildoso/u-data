@@ -18,6 +18,10 @@ dependencies {
     implementation("org.slf4j:slf4j-nop:1.7.36")
 
     implementation("io.github.cdimascio:dotenv-kotlin:6.2.2")
+
+    // https://mvnrepository.com/artifact/io.github.evanrupert/excelkt
+    implementation("io.github.evanrupert:excelkt:1.0.2")
+
 }
 
 
